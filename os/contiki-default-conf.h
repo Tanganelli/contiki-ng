@@ -211,4 +211,10 @@
 #define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_IPHC
 #endif /* SICSLOWPAN_CONF_COMPRESSION */
 
+/* SICSLOWPAN_CONF_MESH specifies if 6lowpan mesh header should be
+   used or not. Mesh header is off by default. */
+#ifndef SICSLOWPAN_CONF_MESH
+#define SICSLOWPAN_CONF_MESH                    0
+#endif /* SICSLOWPAN_CONF_MESH */
+
 #endif /* CONTIKI_DEFAULT_CONF_H */

@@ -2058,6 +2058,100 @@ sicslowpan_init(void)
 
 #endif /* SICSLOWPAN_COMPRESSION == SICSLOWPAN_COMPRESSION_IPHC */
 }
+
+#if SICSLOWPAN_CONF_MESH
+
+/*-----------Utility functions----------*/
+#define BIT(bit) (1 << bit)
+#define BIT_IS_SET(val, bit) (((val & (1 << bit)) >> bit) == 1)
+#define CLEAR_BIT(val, bit)  (val = (val & ~(1 << bit)))
+#define SET_BIT(val, bit)  (val = (val | (1 << bit)))
+
+/*--------------Constants---------------*/
+#define MAX_NUM_ROUTE_OVER_ADDRS    2
+#define MESH_ORIGINATOR_ADDR        1
+#define MESH_FINAL_ADDR             9
+#define MESH_V_FLAG                 5
+#define MESH_F_FLAG                 4
+#define MESH_DEFAULT_HL             0x0e    /* xxxx1110 */
+
+int sicslowpan_has_mesh_header(uint8_t* packet){
+	uint8_t* ptr;
+	if(packet == NULL)
+		ptr = packetbuf_ptr;
+	else
+		ptr = packet;
+	if((*ptr & 0xc0) == SICSLOWPAN_DISPATCH_MESH)
+		return 1;
+	return 0;
+}
+
+int sicslowpan_parse_mesh_header(uint8_t* packet, uint8_t* hopLimit,
+        uint8_t* finalAddr, uint8_t* finalAddrDim,
+        uint8_t* origAddr, uint8_t* origAddrDim){
+
+	uint8_t meshHeaderSize = 0;
+	uint8_t* ptr;
+
+	if(sicslowpan_has_mesh_header(packet) != 1)
+		return 0;
+
+	if(packet == NULL)
+		ptr = packetbuf_ptr;
+	else
+		ptr = packet;
+
+	meshHeaderSize += 1;
+	//TODO: parse the dispatch byte and check the bits V and F in order to derive the addresses length
+	//Assume that both addresses are 64 bits sized
+	/*----------Parse the Hop Limit field---------*/
+	if(hopLimit != NULL)
+		*hopLimit = (*ptr) & ((1 << 4) - 1);
+
+	/*----------Parse the Originator Address-----------*/
+	if(!BIT_IS_SET(*ptr, MESH_V_FLAG)){  //64-bit long originator address
+		if(origAddr != NULL)
+			memcpy(origAddr, ptr + MESH_ORIGINATOR_ADDR, LINKADDR_SIZE);
+		meshHeaderSize += LINKADDR_SIZE;
+		if(origAddrDim != NULL)
+			*origAddrDim = LINKADDR_SIZE;
+	}
+	else{                               //16-bit long originator address
+		if(origAddr != NULL)
+			memcpy(origAddr, ptr + MESH_ORIGINATOR_ADDR, 2);
+		meshHeaderSize += 2;
+		if(origAddrDim != NULL)
+			*origAddrDim = 2;
+	}
+
+	/*----------Parse the Final Address-----------*/
+	if(!BIT_IS_SET(*ptr, MESH_F_FLAG)){  //64-bit long final address
+		if(finalAddr != NULL)
+			memcpy(finalAddr, ptr + MESH_FINAL_ADDR, LINKADDR_SIZE);
+		if(finalAddrDim != NULL)
+			*finalAddrDim = LINKADDR_SIZE;
+		meshHeaderSize += LINKADDR_SIZE;
+	}
+	else{                               //16-bit long final address
+		if(finalAddr != NULL)
+			memcpy(finalAddr, ptr + MESH_FINAL_ADDR, 2);
+		meshHeaderSize += 2;
+		if(finalAddrDim != NULL)
+			*finalAddrDim = 2;
+	}
+	if(LOG_DBG_ENABLED) {
+		int i;
+		LOG_DBG("MESH HEADER =");
+		for(i = 0; i < meshHeaderSize; i++)
+			LOG_DBG_("%02x", ptr[i]);
+		LOG_DBG_("\n");
+	}
+
+	return meshHeaderSize;
+}
+
+#endif
+
 /*--------------------------------------------------------------------*/
 int
 sicslowpan_get_last_rssi(void)

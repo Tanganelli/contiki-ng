@@ -88,6 +88,7 @@
 #define SICSLOWPAN_DISPATCH_FRAG_MASK               0xf8
 #define SICSLOWPAN_DISPATCH_PAGING                  0xf0 /* 1111xxxx */
 #define SICSLOWPAN_DISPATCH_PAGING_MASK             0xf0
+#define SICSLOWPAN_DISPATCH_MESH                    0x80 /* 10xxxxxx */
 /** @} */
 
 /** \name HC1 encoding
@@ -333,6 +334,34 @@ struct sicslowpan_nh_compressor {
   int (* uncompress)(uint8_t *compressed, uint8_t *lowpanbuf, uint8_t *uncompressed_len);
 
 };
+
+/**
+ * \brief checks if the provided packet has the mesh header
+ *
+ * Function that tells if the packet has the Mesh
+ * Header or not.
+ * \return An integer equals to -1 if some error occurs, equals to 1 if
+ * there is the Mesh Header or 0 if not.
+ */
+int sicslowpan_has_mesh_header(uint8_t* packet);
+
+/**
+ * \brief Extracts Mesh Header sub-fields
+ *
+ * Function which extracts the Final Address and the Originator Address
+ * from the 6LoWPAN packet.
+ * \param ptr_to_packet
+ * \param hopLimit Pointer to an integer that will store the hop limit field
+ * \param finalAddr Pointer where to copy the final MAC address
+ * \param finalAddrDim Pointer to an integer that will store size of final address
+ * \param origAddr Pointer where to copy the originator MAC address
+ * \param origAddrDim Pointer to an integer that will store size of originator address
+ * \return An integer equals to -1 if some error occurs, if the parameter is NULL
+ * or if the packet has not the Mesh Header.
+ */
+int sicslowpan_parse_mesh_header(uint8_t* packet, uint8_t* hopLimit,
+        uint8_t* finalAddr, uint8_t* finalAddrDim,
+        uint8_t* origAddr, uint8_t* origAddrDim);
 
 int sicslowpan_get_last_rssi(void);
 
